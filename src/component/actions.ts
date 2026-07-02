@@ -187,10 +187,17 @@ export const sendTransactional = action({
 		transactionalId: v.string(),
 		email: v.string(),
 		dataVariables: v.optional(v.record(v.string(), v.any())),
+		idempotencyKey: v.optional(v.string()),
 	},
 	returns: successWithMessageIdResponseValidator,
 	handler: async (ctx, args) => {
 		const response = await loopsFetch(args.apiKey, "/transactional", {
+			headers:
+				args.idempotencyKey === undefined
+					? undefined
+					: {
+							"Idempotency-Key": args.idempotencyKey,
+						},
 			method: "POST",
 			json: {
 				transactionalId: args.transactionalId,
@@ -199,7 +206,7 @@ export const sendTransactional = action({
 			},
 		});
 
-		if (!response.ok) {
+		if (!(response.ok || response.status === 409)) {
 			const errorText = await response.text();
 			console.error(`Loops API error [${response.status}]:`, errorText);
 			await ctx.runMutation(internal.mutations.logEmailOperation, {
@@ -222,10 +229,9 @@ export const sendTransactional = action({
 			messageId: data.messageId,
 		});
 
-		return {
-			success: true,
-			messageId: data.messageId,
-		};
+		return data.messageId === undefined
+			? { success: true }
+			: { success: true, messageId: data.messageId };
 	},
 });
 

@@ -19,6 +19,7 @@ export interface TransactionalEmailOptions {
 	transactionalId: string;
 	email: string;
 	dataVariables?: Record<string, unknown>;
+	idempotencyKey?: string;
 }
 
 export interface EventOptions {
@@ -440,6 +441,7 @@ export class Loops {
 					transactionalId: v.string(),
 					email: v.string(),
 					dataVariables: v.optional(v.any()),
+					idempotencyKey: v.optional(v.string()),
 				},
 				handler: async (ctx, args) => {
 					return await this.sendTransactional(ctx, args);

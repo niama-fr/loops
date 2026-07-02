@@ -45,6 +45,7 @@ export interface TransactionalPayload {
 	transactionalId?: string;
 	email?: string;
 	dataVariables?: Record<string, unknown>;
+	idempotencyKey?: string;
 }
 
 export interface EventPayload {

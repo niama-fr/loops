@@ -25,6 +25,7 @@ export const transactionalEmailValidator = v.object({
 	transactionalId: v.optional(v.string()),
 	email: v.string(),
 	dataVariables: v.optional(v.record(v.string(), v.any())),
+	idempotencyKey: v.optional(v.string()),
 });
 
 /**
