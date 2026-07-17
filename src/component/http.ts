@@ -153,6 +153,7 @@ http.route({
 				transactionalId: payload.transactionalId,
 				email: payload.email,
 				dataVariables: payload.dataVariables,
+				idempotencyKey: payload.idempotencyKey,
 			});
 			return jsonResponse(data);
 		} catch (error) {

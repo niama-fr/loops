@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { api, internal } from "../../src/component/_generated/api";
-import { mockContactCreate, resetMocks, setupMockFetch } from "./mock-setup";
+import {
+	getLastLoopsRequest,
+	mockApiCall,
+	mockContactCreate,
+	resetMocks,
+	setupMockFetch,
+} from "./mock-setup";
 import { convexTest } from "./setup.test";
 
 describe("component lib", () => {
@@ -35,6 +41,40 @@ describe("component lib", () => {
 		// Verify contact was stored by checking count
 		const count = await t.query(api.queries.countContacts, {});
 		expect(count).toBeGreaterThanOrEqual(1);
+	});
+
+	test("sendTransactional forwards the idempotency key", async () => {
+		const t = convexTest();
+
+		await t.action(api.actions.sendTransactional, {
+			apiKey: "test-api-key",
+			email: "reader@example.com",
+			idempotencyKey: "newsletter-email:abc123",
+			transactionalId: "welcome-email",
+		});
+
+		const headers = new Headers(getLastLoopsRequest()?.init?.headers);
+		expect(headers.get("Idempotency-Key")).toBe("newsletter-email:abc123");
+	});
+
+	test("sendTransactional accepts an idempotent replay response", async () => {
+		const t = convexTest();
+		mockApiCall(
+			"https://app.loops.so/api/v1/transactional",
+			new Response(JSON.stringify({ message: "Already processed" }), {
+				headers: { "Content-Type": "application/json" },
+				status: 409,
+			}),
+		);
+
+		await expect(
+			t.action(api.actions.sendTransactional, {
+				apiKey: "test-api-key",
+				email: "reader@example.com",
+				idempotencyKey: "newsletter-email:abc123",
+				transactionalId: "welcome-email",
+			}),
+		).resolves.toMatchObject({ success: true });
 	});
 
 	test("updateContact updates existing contact", async () => {

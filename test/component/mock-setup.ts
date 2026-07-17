@@ -6,12 +6,18 @@ const LOOPS_API_BASE_URL = "https://app.loops.so/api/v1";
 
 // Store mock responses
 const mockResponses: Map<string, Response> = new Map();
+let lastLoopsRequest: { init?: RequestInit; url: string } | undefined;
 
 /**
  * Reset all mocks
  */
 export function resetMocks() {
 	mockResponses.clear();
+	lastLoopsRequest = undefined;
+}
+
+export function getLastLoopsRequest() {
+	return lastLoopsRequest;
 }
 
 /**
@@ -53,6 +59,7 @@ export function setupMockFetch() {
 			if (!url.startsWith(LOOPS_API_BASE_URL)) {
 				return originalFetch(input, init);
 			}
+			lastLoopsRequest = { init, url };
 
 			// Check if we have a custom mock response template
 			if (mockResponses.has(url)) {
