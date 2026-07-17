@@ -1,6 +1,6 @@
 {
 	"name": "@niama/loops",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Convex component for integrating with Loops.so email marketing platform",
 	"license": "Apache-2.0",
 	"type": "module",
@@ -73,7 +73,7 @@
 		"attw": "attw $(npm pack -s) --exclude-entrypoints ./convex.config ./test --profile esm-only --ignore-rules internal-resolution-error",
 		"prepare": "npm run build || true",
 		"changeset": "changeset",
-		"ci:version": "changeset version && bun update",
+		"ci:version": "changeset version",
 		"ci:publish": "changeset publish",
 		"preversion": "bun run clean && bun install && run-p test lint typecheck attw",
 		"version": "pbcopy <<<$npm_package_version; vim CHANGELOG.md && biome format --write CHANGELOG.md && git add CHANGELOG.md",
