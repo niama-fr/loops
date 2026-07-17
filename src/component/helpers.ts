@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import type { HeadersInitParam } from "../types";
 
 const allowedOrigin =
@@ -14,20 +15,43 @@ export const LOOPS_API_BASE_URL = "https://app.loops.so/api/v1";
 export const sanitizeLoopsError = (
 	status: number,
 	_errorText: string,
-): Error => {
+): ConvexError<LoopsRequestFailure> => {
 	if (status === 401 || status === 403) {
-		return new Error("Authentication failed. Please check your API key.");
+		return new ConvexError({
+			code: "LOOPS_REQUEST_FAILED",
+			failure: "authentication",
+		});
 	}
 	if (status === 404) {
-		return new Error("Resource not found.");
+		return new ConvexError({
+			code: "LOOPS_REQUEST_FAILED",
+			failure: "missingResource",
+		});
 	}
 	if (status === 429) {
-		return new Error("Rate limit exceeded. Please try again later.");
+		return new ConvexError({
+			code: "LOOPS_REQUEST_FAILED",
+			failure: "rateLimited",
+		});
 	}
 	if (status >= 500) {
-		return new Error("Loops service error. Please try again later.");
+		return new ConvexError({ code: "LOOPS_REQUEST_FAILED", failure: "server" });
 	}
-	return new Error(`Loops API error (${status}). Please try again.`);
+	return new ConvexError({
+		code: "LOOPS_REQUEST_FAILED",
+		failure: "validation",
+	});
+};
+
+type LoopsRequestFailure = {
+	code: "LOOPS_REQUEST_FAILED";
+	failure:
+		| "authentication"
+		| "missingResource"
+		| "network"
+		| "rateLimited"
+		| "server"
+		| "validation";
 };
 
 export type LoopsRequestInit = Omit<RequestInit, "body"> & {
@@ -46,12 +70,19 @@ export const loopsFetch = async (
 		headers.set("Content-Type", "application/json");
 	}
 
-	return fetch(`${LOOPS_API_BASE_URL}${path}`, {
-		...rest,
-		headers,
-		// @ts-expect-error RequestInit in this build doesn't declare body
-		body: json !== undefined ? JSON.stringify(json) : rest.body,
-	});
+	try {
+		return await fetch(`${LOOPS_API_BASE_URL}${path}`, {
+			...rest,
+			headers,
+			// @ts-expect-error RequestInit in this build doesn't declare body
+			body: json !== undefined ? JSON.stringify(json) : rest.body,
+		});
+	} catch {
+		throw new ConvexError<LoopsRequestFailure>({
+			code: "LOOPS_REQUEST_FAILED",
+			failure: "network",
+		});
+	}
 };
 
 export const buildCorsHeaders = (extra?: HeadersInitParam) => {
